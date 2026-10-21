@@ -1,55 +1,27 @@
-# DragShift
+# DragShift: Audio & Video Fork
+
+This independent fork is based on [llamaboi55/DragShift](https://github.com/llamaboi55/DragShift).
+The upstream project and its history are preserved; this fork adds audio and video conversion.
+Upstream DragShift is MIT-licensed. See [LICENSE](LICENSE) and the separate FFmpeg terms below.
 
 Convert and edit files on **Windows, Mac and Linux** with a liquid-glass radial menu. Start dragging any file, press **Shift**, and drop it on a slice.
 
 ![DragShift radial menu and Add BG editor](docs/preview.png)
 
-## Download
+## Availability
 
-From the [latest release](../../releases/latest):
-
-- **DragShift-Setup.exe** (recommended): installs for your user only, so no admin rights are needed. It adds a Start menu entry, an option to start with Windows, a right-click **DragShift…** entry and a **Send to → DragShift** entry. It uninstalls cleanly from Settings → Apps.
-- **DragShift.exe**: a portable version you can run from anywhere.
-
-**Mac (easiest, no security warning):** paste this into Terminal:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/llamaboi55/DragShift/main/install-mac.sh | bash
-```
-
-It picks the right build for your Mac, installs it to Applications and opens it ([see what it does](install-mac.sh)). Run the same line again to update.
-
-Or download the .dmg yourself:
-- **DragShift-mac-apple-silicon.dmg**: for Macs with M1, M2, M3 or M4 chips (macOS 11 or later).
-- **DragShift-mac-intel.dmg**: for Intel Macs.
-
-Open the .dmg and drag **DragShift** into Applications. DragShift lives in the menu bar and has no Dock icon. You can also right-click any file → **Open With → DragShift**.
-
-**Linux (Debian, Ubuntu, Mint, MX… with XFCE, MATE, Cinnamon or any X11 desktop):** download **DragShift-linux-amd64.deb**, then run:
-
-```bash
-sudo apt install ./DragShift-linux-amd64.deb
-```
-
-Open **DragShift** from the app menu. It sits in the panel's notification area, and you can turn on *Start at login* in Settings. It works in Thunar, Nautilus, Nemo, Caja, Dolphin and on the desktop, and it also adds **Open With → DragShift** to file right-click menus. It works with or without a compositor: when compositing is off (common on XFCE), the menu and windows are cut to their exact shape, so you won't see black boxes. Builds target Debian 12 or newer (Ubuntu 23.04+).
-
-> **Wayland:** Wayland doesn't let apps read the global Shift and mouse state, so the Shift + drag trigger only works in X11 sessions (XFCE is X11). On GNOME/KDE Wayland, use right-click → **Open With → DragShift**, or pick *"Ubuntu on Xorg"* / *"Plasma (X11)"* at the login screen.
-
-> **First launch on Windows:** SmartScreen may warn because the app isn't code-signed yet. Click **More info → Run anyway**.
->
-> **First launch on Mac, if you used the .dmg instead of the Terminal line:** macOS says *"Apple could not verify 'DragShift' is free of malware."* This happens with any app that hasn't paid for Apple's notarization; DragShift's code is all public in this repo. To open it:
-> 1. Open DragShift once and click **Done** on the warning.
-> 2. Go to  → **System Settings → Privacy & Security**, scroll down to *"DragShift was blocked…"* and click **Open Anyway**. Enter your password and confirm.
-> 3. That's it. macOS remembers the choice.
->
-> Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/DragShift.app`
-> (On macOS 15 and later, the old right-click → Open shortcut no longer skips this warning.)
->
-> **Mac, optional:** allow **Screen Recording** when DragShift asks, so the glass can refract the windows behind it. Without it, the glass shows your wallpaper. Nothing is ever saved or sent.
+No fork binary release is published yet. The upstream project's installers and downloads do
+not contain this fork's audio/video changes. See [Run from source](#run-from-source) to try
+the current code. Binary releases are blocked pending the corresponding-source materials
+for the bundled GPL FFmpeg build and a complete dependency license review. In particular,
+PyMuPDF is AGPL-3.0-or-commercial and PySide6/Qt has multiple license options; this fork has
+not established a commercial grant or completed compliance review. See
+[Third-Party Notices](THIRD_PARTY_NOTICES.md). The source is prepared for review, not declared
+license-cleared for redistribution as a ready-to-run application.
 
 ## How to use
 
-1. Start dragging a file (an image, PDF, Word or text file; desktop shortcuts to one work too) in File Explorer, Finder, your Linux file manager or on the desktop.
+1. Start dragging a supported image, document, audio or video file in File Explorer, Finder, your Linux file manager or on the desktop.
 2. Press **Shift**. The menu opens under your cursor.
 3. Drop the file on a slice. The result is saved **next to the original**, and the original is never changed.
 4. To switch between **Convert** and **Tools**, tap **Shift** again.
@@ -66,8 +38,18 @@ You can also right-click a file → **DragShift…**, use **Send to → DragShif
 | PDF | JPG or PNG (one per page), DOCX, TXT | Compress · Split · Rotate · Merge (drop several) · **Protect** (AES-256 password) · **Extract images** · Metadata |
 | Word (.docx) | PDF (uses Microsoft Word if it's installed, otherwise a built-in renderer), TXT | — |
 | Text (.txt, .md, .csv…) | PDF, DOCX | — |
+| Audio (MP3, WAV, FLAC, M4A/AAC, AIFF, ALAC, OGG, Opus, WMA) | Any listed audio format | Streaming FFmpeg conversion; results are written beside the source |
+| Video (MP4, MOV, MKV, WebM, AVI, M4V) | Any listed container | FFmpeg conversion and audio extraction |
 
-**Settings** (tray menu): trigger key (Shift, Ctrl or Alt), where results go (next to the original or a `DragShift` subfolder), JPG/WebP quality, PDF → image resolution, and start at login.
+The audio/video rows list recognized input extensions and output choices, not a promise that
+every possible codec/stream combination will convert. Unsupported or damaged inputs can fail.
+Audio output tested end-to-end on macOS arm64: WAV PCM (16/24-bit and 32-bit float), MP3,
+and FLAC. The bundled FFmpeg advertises the encoders needed for the other listed audio
+outputs, but those combinations have not all been individually tested. Video container
+outputs use FFmpeg's configured encoders; WebM defaults to VP9, while the other containers
+default to H.264. Compatibility still depends on the source streams and target container.
+
+**Settings** (tray menu): trigger key (Shift, Ctrl or Alt), where results go (next to the original or a `DragShift` subfolder), JPG/WebP quality, PDF → image resolution, audio quality profile (Low/Medium/High), audio sample rate, WAV bit depth and channel layout, and start at login. Audio `Auto` sample rate omits resampling; WAV `Auto` uses 16-bit PCM. Upsampling does not restore source detail.
 
 ## The look
 
@@ -75,14 +57,13 @@ The menu, notifications and windows use real **liquid-glass** rendering. DragShi
 
 ## Tested on real desktops
 
-Every push runs these jobs on GitHub's Windows, Mac and Linux machines:
+The upstream repository defines Windows, macOS and Linux CI/E2E workflows. This fork has not
+yet published fork-specific CI results. Local validation on macOS arm64:
 
-- **Build:** unit tests, the portable exe and installer builds, a self-test of each build, and a silent install → run → uninstall check.
-- **End-to-end:** a script moves the real mouse to drag files from File Explorer *and* the Desktop, presses Shift, drops on every conversion and tool, drives each tool window, and checks every output file (format, dimensions, page counts, encryption, metadata removed). The results table and a screen recording are saved to the `e2e-output` branch.
-- **Mac end-to-end:** real Finder drags with Shift (Quartz mouse and keyboard events) through conversions, PDF tools, merging and the tool windows. Every output is checked, and the run is recorded to the `e2e-mac-output` branch.
-- **Mac builds:** `DragShift.app` and the .dmg for Apple Silicon and Intel, each self-tested inside the app bundle.
-- **Debian/XFCE:** builds the .deb on Debian 12, installs it, and runs the same kind of end-to-end test in Thunar under XFCE's window manager with the compositor **off**. Real XTest drags with Shift go through conversions, PDF tools, merging, the tool windows and Open With. The results and a recording are saved to the `e2e-linux-output` branch.
-- **Demo video:** pushing to the `demo` branch records a showcase video.
+- `python -m pytest -q`: 45 passed, 1 skipped.
+- Frozen arm64 app self-test: passed; existing image/PDF/document checks and bundled FFmpeg startup/audio smoke test passed.
+- Real bundled-FFmpeg batch conversions: two files each to WAV, MP3 and FLAC; sample rate, channel layout, WAV bit depth and MP3 bitrate inspected in output streams.
+- Video output smoke test: MP4, MOV, MKV, WebM, AVI and M4V using a generated short H.264 source. This is a container smoke test, not broad codec/input coverage.
 
 ## Support
 
@@ -92,9 +73,20 @@ DragShift is free. If it saves you time, you can leave a tip on Cash App: [**$At
 
 ## License
 
-[MIT](LICENSE): free to use, modify and share.
+[MIT](LICENSE) applies to DragShift's own code. Keep the upstream copyright and permission
+notice in copies or substantial portions. The separately bundled FFmpeg executable is
+GPL-2.0-or-later; see [Third-Party Notices](THIRD_PARTY_NOTICES.md). The MIT license does
+not relicense FFmpeg or other third-party components.
 
 ## Run from source
+
+Requirements: Python 3.10 or newer and a supported desktop session. The fork's
+media conversions and clean app bundle have been exercised on macOS arm64 only;
+Windows, Intel macOS and Linux fork builds have not been validated here.
+Most entries in `requirements.txt` are minimum versions rather than exact pins,
+so installs can resolve to different versions and license notices over time.
+The dependency inventory in [Third-Party Notices](THIRD_PARTY_NOTICES.md) is a
+local snapshot, not a complete cross-platform bill of materials.
 
 ```bash
 pip install -r requirements.txt
@@ -105,4 +97,31 @@ On Linux, PySide6 also needs the Qt XCB libraries: `sudo apt install libxcb-curs
 
 Tests: `python -m pytest -q`. Logs are written to `%LOCALAPPDATA%\DragShift\log.txt` on Windows, `~/Library/Logs/DragShift/log.txt` on Mac and `~/.local/share/DragShift/log.txt` on Linux.
 
-Windows builds will be code-signed by the SignPath Foundation, which provides free code signing for open-source projects.
+### Audio and video codecs
+
+The pinned FFmpeg provider is `imageio-ffmpeg==0.6.0` (FFmpeg 7.1). The
+macOS arm64 binary is bundled into the app, so the user does not need Homebrew
+or a system FFmpeg. The binary advertises H.264 (`libx264`), HEVC
+(`libx265`), VP9 (`libvpx-vp9`), AV1 (`libsvtav1`/`libaom`), MP3, AAC, FLAC,
+ALAC, Vorbis, Opus, PCM and WMA encoders. These are binary capabilities; the
+app currently exposes H.264 for most video containers and VP9 for WebM, not a
+general video codec selector. WMA output uses WMA v2.
+See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md): the actual binary reports
+GNU GPL version 2 or later (`--enable-gpl`), not GPLv3. The exact corresponding
+source bundle, including external library sources and build/install scripts, is
+not yet prepared. Do not redistribute an app bundle containing this FFmpeg until
+the compliance materials have been assembled and reviewed.
+
+Audio and video conversions run as FFmpeg subprocesses and do not load media
+files into Python memory. Audio Settings are persisted using QSettings and
+applied to single-file and batch conversions. Batch conversions continue after
+individual file errors and choose a non-conflicting output name. Current
+limitations: there is no video codec/quality selector (WebM defaults to VP9;
+other targets default to H.264/Balanced);
+live per-file progress and cancellation controls, automatic container-aware
+remux selection, subtitle/multitrack selection, and a dedicated conversion
+report window are not implemented. Video encoding uses FFmpeg software encoders;
+hardware VideoToolbox encoding is not currently selected. The app includes
+FFmpeg but not a separate ffprobe binary.
+
+No fork installer, signing or notarization workflow is currently published.

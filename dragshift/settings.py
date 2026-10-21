@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QHBoxLayout, Q
                                QPushButton, QSlider, QVBoxLayout)
 
 from . import __version__
+from .media import AudioConfig
 from .util import CONFIG
 from .window import GlassWindow
 
@@ -21,14 +22,25 @@ DEFAULTS = {
     "output": "next",
     "jpg_quality": 90,
     "pdf_dpi": 200,
+    "audio_quality": "High",
+    "audio_sample_rate": "auto",
+    "audio_wav_bit_depth": "auto",
+    "audio_channels": "auto",
     "trigger": "shift",
     "welcomed": False,
+}
+CHOICES = {
+    "audio_quality": {"Low", "Medium", "High"},
+    "audio_sample_rate": {"auto", "44100", "48000", "96000"},
+    "audio_wav_bit_depth": {"auto", "16", "24", "32f"},
+    "audio_channels": {"auto", "mono", "stereo"},
 }
 
 
 class Settings:
-    def __init__(self):
-        self.q = QSettings(APP, APP)
+    def __init__(self, qsettings: QSettings | None = None):
+        self.q = qsettings if qsettings is not None else QSettings(APP, APP)
+        self.audio_config = AudioConfig()
 
     def get(self, key):
         v = self.q.value(key, DEFAULTS[key])
@@ -40,6 +52,9 @@ class Settings:
                 return int(v)
             except (TypeError, ValueError):
                 return d
+        if key in CHOICES:
+            value = str(v)
+            return value if value in CHOICES[key] else d
         return v
 
     def set(self, key, value):
@@ -49,6 +64,13 @@ class Settings:
     def apply(self):
         for k in ("output", "jpg_quality", "pdf_dpi"):
             CONFIG[k] = self.get(k)
+        sample_rate = self.get("audio_sample_rate")
+        self.audio_config = AudioConfig(
+            quality=self.get("audio_quality"),
+            sample_rate=int(sample_rate) if sample_rate != "auto" else None,
+            wav_bit_depth=self.get("audio_wav_bit_depth"),
+            channels=self.get("audio_channels"),
+        )
 
 
 # ---------------------------------------------------------------- autostart (Windows)
@@ -102,13 +124,18 @@ TRIGGERS = ([("shift", "Shift ⇧"), ("ctrl", "Control ⌃"), ("alt", "Option �
             else [("shift", "Shift"), ("ctrl", "Ctrl"), ("alt", "Alt")])
 OUTPUTS = [("next", "Next to the original"), ("folder", "In a “DragShift” subfolder")]
 DPIS = [(150, "150 dpi · small"), (200, "200 dpi · balanced"), (300, "300 dpi · print")]
+AUDIO_QUALITIES = [("Low", "Low · compact size"), ("Medium", "Medium · balanced"),
+                   ("High", "High · best quality")]
+AUDIO_RATES = [("auto", "Auto"), ("44100", "44.1 kHz"), ("48000", "48 kHz"), ("96000", "96 kHz")]
+WAV_DEPTHS = [("auto", "Auto"), ("16", "16-bit PCM"), ("24", "24-bit PCM"), ("32f", "32-bit float")]
+AUDIO_CHANNELS = [("auto", "Auto"), ("mono", "Mono"), ("stereo", "Stereo")]
 
 
 class SettingsWindow(GlassWindow):
     changed = Signal()
 
     def __init__(self, settings: Settings):
-        super().__init__("Settings", size=(520, 470))
+        super().__init__("Settings", size=(520, 540))
         self.s = settings
         grid = QGridLayout()
         grid.setHorizontalSpacing(14)
@@ -158,6 +185,25 @@ class SettingsWindow(GlassWindow):
         self.dpi.currentIndexChanged.connect(lambda _: self._save("pdf_dpi", self.dpi.currentData()))
         grid.addWidget(self.dpi, r, 1)
         r += 1
+
+        audio_heading = QLabel("AUDIO CONVERSION")
+        audio_heading.setObjectName("section")
+        grid.addWidget(audio_heading, r, 0, 1, 2)
+        r += 1
+
+        audio_rows = (
+            ("Audio quality", "audio_quality", AUDIO_QUALITIES),
+            ("Sample rate", "audio_sample_rate", AUDIO_RATES),
+            ("WAV bit depth", "audio_wav_bit_depth", WAV_DEPTHS),
+            ("Channels", "audio_channels", AUDIO_CHANNELS),
+        )
+        for label, key, choices in audio_rows:
+            grid.addWidget(QLabel(label), r, 0)
+            control = combo(choices, self.s.get(key))
+            control.currentIndexChanged.connect(lambda _, k=key, c=control: self._save(k, c.currentData()))
+            setattr(self, key, control)
+            grid.addWidget(control, r, 1)
+            r += 1
 
         if IS_WIN or IS_MAC or IS_LINUX:
             self.auto = QCheckBox("Start DragShift with Windows" if IS_WIN else "Open DragShift at login")

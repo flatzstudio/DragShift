@@ -237,6 +237,13 @@ class DragShiftApp(QObject):
         cat = category(paths[0])
         if cat is None:
             return {"Unsupported": []}
+        if cat in ("audio", "video"):
+            from . import media
+            names = media.audio_targets(paths[0]) if cat == "audio" else media.video_targets(paths[0])
+            rings = {"Audio" if cat == "audio" else "Video": [Item(n, key=f"media:{n}") for n in names]}
+            if cat == "video":
+                rings["Extract Audio"] = [Item(n, key=f"extract:{n}") for n in ("MP3", "AAC", "FLAC")]
+            return rings
         ext = Path(paths[0]).suffix
         same = [p for p in paths if category(p) == cat]
         convert_items = []
@@ -258,6 +265,22 @@ class DragShiftApp(QObject):
         cat = category(paths[0])
         paths = [p for p in paths if category(p) == cat]
         kind, name = item.key.split(":", 1)
+        if kind in ("media", "extract"):
+            from . import media
+            media_kind = "audio" if kind == "extract" or cat == "audio" else "video"
+            def work():
+                outs, errors = media.convert_batch(paths, name, media_kind,
+                                                   audio=self.settings.audio_config,
+                                                   extract_audio=kind == "extract")
+                if errors:
+                    detail = f"{len(outs)} succeeded, {len(errors)} failed: " + "; ".join(
+                        f"{p.name}: {msg}" for p, msg in errors[:3])
+                    if not outs:
+                        raise UserError(detail)
+                    self.toasts.error("Some media files failed", detail)
+                return outs
+            self.submit(f"convert:{name}", paths, work, f"Converting {len(paths)} file(s)…")
+            return
         if kind == "convert":
             if cat == "image" and name == "PDF" and len(paths) > 1:
                 self.submit(f"convert:{name}", paths, lambda: convert.images_to_single_pdf(paths),
@@ -500,6 +523,18 @@ def selftest() -> int:
     from PIL import Image
     try:
         with tempfile.TemporaryDirectory() as d:
+            from . import media
+            ffmpeg = media.ffmpeg_path()
+            version = __import__("subprocess").run([str(ffmpeg), "-version"], capture_output=True, text=True)
+            if version.returncode or "ffmpeg version 7.1" not in version.stdout:
+                raise RuntimeError("Bundled FFmpeg did not start or has an unexpected version")
+            wave = Path(d) / "test tone.wav"
+            __import__("subprocess").run([str(ffmpeg), "-hide_banner", "-loglevel", "error", "-f", "lavfi",
+                                          "-i", "sine=frequency=440:duration=0.2", "-c:a", "pcm_s16le",
+                                          str(wave)], check=True)
+            encoded = media.convert_one(wave, "MP3", "audio")
+            if not encoded.is_file() or encoded.stat().st_size == 0:
+                raise RuntimeError("Bundled FFmpeg audio conversion failed")
             src = Path(d) / "t.png"
             Image.new("RGBA", (64, 48), (255, 100, 80, 255)).save(src)
             for t in convert.targets_for("image", ".png"):

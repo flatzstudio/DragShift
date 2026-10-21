@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   e2e:
@@ -33,20 +33,6 @@ jobs:
         if: always()
         shell: bash
         run: cat e2e_out/results.md >> $GITHUB_STEP_SUMMARY || true
-
-      - name: Save results to the e2e-output branch
-        if: always()
-        shell: bash
-        run: |
-          mkdir -p /tmp/o && cp -r e2e_out/* /tmp/o/ || true
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git checkout --orphan e2e-output
-          git rm -rfq . || true
-          cp -r /tmp/o/* . || true
-          git add -A
-          git commit -qm "E2E results ${GITHUB_SHA}" || true
-          git push -f origin e2e-output
 
       - name: Fail if any scenario failed
         shell: bash

@@ -4,11 +4,13 @@ from PyInstaller.utils.hooks import collect_all
 
 onefile = os.environ.get("ONEFILE") == "1"
 heif_datas, heif_bins, heif_hidden = collect_all("pillow_heif")
+import imageio_ffmpeg
+ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
 
 a = Analysis(
     ["run.py"],
     datas=[("dragshift/assets", "dragshift/assets")] + heif_datas,
-    binaries=heif_bins,
+    binaries=heif_bins + [(ffmpeg_bin, "ffmpeg")],
     hiddenimports=["win32com.client", "PySide6.QtNetwork", "AppKit", "Quartz", "objc"] + heif_hidden,
     excludes=["tkinter", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtQml",
               "PySide6.QtQuick", "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtCharts",
